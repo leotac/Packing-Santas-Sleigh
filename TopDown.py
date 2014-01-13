@@ -13,16 +13,18 @@ import os
 import csv
 import random
 from random import sample
-from matplotlib import cm
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+
+PLOT = False 
+if PLOT:
+   from matplotlib import cm
+   import matplotlib.pyplot as plt
+   from mpl_toolkits.mplot3d import Axes3D
 
 SLEIGH_LENGTH = 1000
-MAX_LAYERS = 1 
-#MAX_LAYERS = 999999 
-TRIES = 20 
-DEBUG = True
-PLOT = True
+#MAX_LAYERS = 1 
+MAX_LAYERS = 999999 
+TRIES = 5 
+DEBUG = False
 WRITE = True
 RATIO = 1
 FIRST_RATIO = 1
@@ -692,7 +694,7 @@ if __name__ == "__main__":
     
    path = '.'
    presentsFilename = os.path.join(path, 'presents.csv')
-   submissionFilename = os.path.join(path, 'testAll10Tries.csv')
+   submissionFilename = os.path.join(path, 'testAll5Tries.csv')
    
    # create header for submission file: PresentId, x1,y1,z1, ... x8,y8,z8
    header = ['PresentId']
