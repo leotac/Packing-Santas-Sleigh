@@ -23,9 +23,9 @@ if PLOT:
 SLEIGH_LENGTH = 1000
 #MAX_LAYERS = 1 
 MAX_LAYERS = 999999 
-TRIES = 5 
+TRIES = 20 
 DEBUG = False
-WRITE = True
+WRITE = False 
 RATIO = 1
 FIRST_RATIO = 1
 LAST_RATIO = 1
@@ -91,8 +91,9 @@ class Layer:
       ratio = RATIO
       all_presents = self.presents[:]
       sorties = self.batch_size(ratio)
+      initial_batch_size = sorties
       if DEBUG:
-         print "Layer:",layer.id
+         print "Layer:",self.id
          print "Batch size:", sorties
       ok = False
       for it in xrange(sorties):
@@ -118,7 +119,7 @@ class Layer:
                   tmp.sort(key= lambda p : p.z_depth, reverse=True)
                elif sortMode>=4:
                   tmp.sort(key= lambda p : p.height, reverse=True)
-                  myShuffle(tmp, len(tmp)/3)
+                  myShuffle(tmp, len(tmp)/4)
 
                tmp.extend(all_presents[sorties:])
                self.presents = []
@@ -157,15 +158,17 @@ class Layer:
                   ok = True
                   if DEBUG:
                      print "Mode", sortMode, self.packMode, "found it! Packed presents:", len(self.presents), "with", sorties, "sorted presents"
+                     print "Initial size:", initial_batch_size, "iterations:",it
                   result = self.presents[:]
                   resultLeftovers = leftovers[:]
-                  bestScore = layer.score()
+                  bestScore = self.score()
                   break #MUST BREAK OUT! otherwise presents will be rotated or modified by the following cycle iterations!
          if ok == True:
             self.presents = result
             leftovers = resultLeftovers
             break
          else:
+            #print "Decrease size"
             sorties -= 1
       if not ok:
          print "NOT OK!", it
@@ -488,7 +491,7 @@ class Layer:
       x2 = leaf.xpos - leaf.width + 1
       y1 = leaf.ypos
       y2 = leaf.ypos - leaf.height + 1 
-      z1 = layer.z_base 
+      z1 = self.z_base 
       z2 = z1 + present.z_depth - 1
 
       return [x1, x2, y1, y2, z1, z2]
@@ -694,7 +697,7 @@ if __name__ == "__main__":
     
    path = '.'
    presentsFilename = os.path.join(path, 'presents.csv')
-   submissionFilename = os.path.join(path, 'testAll5Tries.csv')
+   submissionFilename = os.path.join(path, 'testtt.csv')
    
    # create header for submission file: PresentId, x1,y1,z1, ... x8,y8,z8
    header = ['PresentId']
@@ -714,14 +717,14 @@ if __name__ == "__main__":
       cumul_area = 0
       for row in fcsv:
          if int(row[0])%5000 == 0:
-            print row[0], "layer:", layer.id, "height:",layer.z_max,"avg:", totScore/layers
+            print row[0], "layer:", layer.id, "height:",layer.z_max,"avg:", 0 if layers==0 else totScore/layers
 
          present = Present(row)
-#         if present.id >= 250:
-#            break
          if present.id == 700000:
             print "Now using:", LAST_RATIO
             RATIO = LAST_RATIO
+            TRIES = 4
+            print "Now using", TRIES, "tries" 
 
          added_present = False
          if cumul_area + present.area <= SLEIGH_LENGTH*SLEIGH_LENGTH:
