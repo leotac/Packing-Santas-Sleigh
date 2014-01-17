@@ -14,20 +14,19 @@ import csv
 import random
 from random import sample
 
-PLOT = True
+PLOT = False
 if PLOT:
    from matplotlib import cm
    import matplotlib.pyplot as plt
    from mpl_toolkits.mplot3d import Axes3D
 
 SLEIGH_LENGTH = 1000
-MAX_LAYERS = 2
+MAX_LAYERS = 999999
 TRIES = 1
 FRACTION = 4
-DEBUG = True
+DEBUG = False
 WRITE = True
-RATIO = 0.83
-GUILL = False
+RATIO = 1
 
 print "Tries:", TRIES
 print "Reshuffle fraction:", FRACTION
@@ -63,10 +62,7 @@ class Layer:
 
    """ Pack the presents """
    def pack(self):
-      if GUILL:
-         return self.guillotine_pack()
-      else:
-         return self.max_rect_pack()
+      return self.max_rect_pack()
 
    """ Compute size of the batch to be sorted """
    def batch_size(self, ratio):
@@ -635,7 +631,6 @@ class Node:
          return self.child[0].insert(present)
 
 
-
 if __name__ == "__main__":
     
    path = '.'
@@ -717,6 +712,21 @@ if __name__ == "__main__":
                # last layer was not "full" (area-wise), so it has not been packed yet!
                print "Packing last layer?"
                leftovers = layer.pack()
+               # reflect even layers
+               if layer.id % 2 == 0:
+               #   print "Reflected shelf"
+                  layer.reflect_shelf()
+               
+               layer.finalize_shelf()
+               
+               # compact shelf down (if possible), preserving order
+               layer.compact(prev_layer)
+               
+#            if len(leftovers)>0:
+#               del leftovers[:layer.try_fit_rectangle(leftovers)]
+               if WRITE:
+                  layer.write_shelf(wcsv)
+
                #however, it can still have leftovers
                if len(leftovers)>0: 
                   prev_layer = layer
