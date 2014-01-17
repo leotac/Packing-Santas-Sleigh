@@ -14,7 +14,7 @@ import csv
 import random
 from random import sample
 
-PLOT = False 
+PLOT = True
 if PLOT:
    from matplotlib import cm
    import matplotlib.pyplot as plt
@@ -46,7 +46,7 @@ class Layer:
    """ Object to keep track of present position and max extent in sleigh so far. """    
    def __init__(self, id, zbase, leftovers):
         self.id = id
-        self.z_base = zbase 
+        self.z_base = zbase
         self.z_max = zbase 
         self.presents = []
         self.presents.extend(leftovers)
@@ -444,6 +444,7 @@ class Layer:
       else:
          z_min = 1
       # z_max must be recomputed (initialized at z_base)
+      #print "Compacting layer", self.id, "with z-base", self.z_base
       self.z_max = self.z_base
       for p in sorted(self.presents,reverse=True): #in reverse order of id!
          # presents in the previous layer sorted by decreasing z-height
@@ -470,7 +471,7 @@ class Layer:
    def finalize_shelf(self):
       if self.id <= MAX_LAYERS:
          for i,p in enumerate(self.presents):
-            p.zpos = p.zpos + self.z_max - p.z_depth
+            p.zpos = self.z_max - p.z_depth
             if PLOT:
                x1, x2, y1, y2, z1, z2 = p.xpos, p.xpos+p.width-1, p.ypos, p.ypos + p.height-1, p.zpos, p.zpos + p.z_depth-1
                xpos.append(min(x1,x2))
@@ -704,6 +705,7 @@ if __name__ == "__main__":
                prev_layer = layer
                if layer.id >= MAX_LAYERS:
                   break
+               #print "Max of previous layer", prev_layer.z_max
                layer = Layer(prev_layer.id+1, prev_layer.z_max+1, leftovers)
                added_present = layer.add_present(present)
 
@@ -724,7 +726,17 @@ if __name__ == "__main__":
                   if len(leftovers) > 0:
                      print "even more leftovers!"
 
-   print "Max z =", maxz
+   print "Max z =", layer.maxz
    print "Last present packed", layer.presents[-1].id
+   if PLOT:
+      fig = plt.figure()
+      ax = fig.add_subplot(111, projection='3d')
+      ax.bar3d(xpos,ypos,zpos,dx,dy,dz,color=colors)
+      #ax.bar3d(xpos,ypos,zpos,dx,dy,dz,color='r')
+      ax.set_xlim3d(0, 1000)
+      ax.set_ylim3d(0, 1000)
+      #ax.set_zlim3d(2000, 2600)
+      print "Plotting"
+      plt.show()
 
    print 'Done'
