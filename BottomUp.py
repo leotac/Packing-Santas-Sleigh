@@ -21,7 +21,7 @@ if PLOT:
    from mpl_toolkits.mplot3d import Axes3D
 
 SLEIGH_LENGTH = 1000
-MAX_LAYERS = 999999
+MAX_LAYERS = 1
 TRIES = 1
 FRACTION = 4
 DEBUG = False
@@ -434,7 +434,7 @@ class Layer:
      
    """ Compactor """
    def compact(self, prev_layer):
-      #z_min up to current present. then, following presents must not be smaller, they can be equal or greater.
+      #z_min of top side! up to current present. then, following presents must not be smaller, they can be equal or greaterof tallest position! .
       if prev_layer is not None:
          z_min = prev_layer.z_max+1       
       else:
@@ -442,7 +442,7 @@ class Layer:
       # z_max must be recomputed (initialized at z_base)
       #print "Compacting layer", self.id, "with z-base", self.z_base
       self.z_max = self.z_base
-      for p in sorted(self.presents,reverse=True): #in reverse order of id!
+      for p in sorted(self.presents,reverse=True, key= lambda x:x.id): #in reverse order of id!
          # presents in the previous layer sorted by decreasing z-height
          if prev_layer is not None:
             for up_p in prev_layer.z_sort_presents():
@@ -450,16 +450,17 @@ class Layer:
                   # this is the tallest overlapping present: you can move down the present, if possible. 
                   # if not possible, break!
                   diff = p.zpos - (up_p.zpos+up_p.z_depth)
-                  if diff > 0 and (p.zpos - diff) >= z_min:
-                     p.zpos -= diff
-                     z_min = max(p.zpos, z_min)
+                  if diff > 0 and (p.zpos+p.z_depth-1) > z_min:
+                     # go down until the overlapping present
+                     # or until the top side is not lower that
+                     p.zpos = max(p.zpos - diff, z_min - p.z_depth + 1)
+                     z_min = max(p.zpos + p.z_depth - 1, z_min)
                   break
          else: #First layer.
             diff = p.zpos - 1
-            if diff > 0 and (p.zpos - diff) >= z_min:
-               p.zpos -= diff
-               z_min = max(p.zpos, z_min)
-         z_min = max(p.zpos, z_min)
+            if diff > 0 and (p.zpos+p.z_depth-1) > z_min:
+               p.zpos = max(p.zpos - diff, z_min - p.z_depth + 1)
+               z_min = max(p.zpos + p.z_depth-1, z_min)
          self.z_max = max(self.z_max, p.zpos + p.z_depth - 1)
       return
 
@@ -467,7 +468,12 @@ class Layer:
    def finalize_shelf(self):
       if self.id <= MAX_LAYERS:
          for i,p in enumerate(self.presents):
-            p.zpos = self.z_max - p.z_depth
+            p.zpos = self.z_max - p.z_depth +1
+
+   """ Finalize shelf: add coordinates for the plot """
+   def store_plot(self):
+      if self.id <= MAX_LAYERS:
+         for i,p in enumerate(self.presents):
             if PLOT:
                x1, x2, y1, y2, z1, z2 = p.xpos, p.xpos+p.width-1, p.ypos, p.ypos + p.height-1, p.zpos, p.zpos + p.z_depth-1
                xpos.append(min(x1,x2))
@@ -635,7 +641,7 @@ if __name__ == "__main__":
     
    path = '.'
    presentsFilename = os.path.join(path, 'presents_revorder.csv')
-   submissionFilename = os.path.join(path, 'revoutput.csv')
+   submissionFilename = os.path.join(path, 'bottomup.csv')
    print submissionFilename
 
    # create header for submission file: PresentId, x1,y1,z1, ... x8,y8,z8
@@ -690,6 +696,9 @@ if __name__ == "__main__":
                # compact shelf down (if possible), preserving order
                layer.compact(prev_layer)
                
+               if PLOT:
+                  layer.store_plot()
+               
 #            if len(leftovers)>0:
 #               del leftovers[:layer.try_fit_rectangle(leftovers)]
                if WRITE:
@@ -736,7 +745,7 @@ if __name__ == "__main__":
                   if len(leftovers) > 0:
                      print "even more leftovers!"
 
-   print "Max z =", layer.maxz
+   print "Max z =", layer.z_max
    print "Last present packed", layer.presents[-1].id
    if PLOT:
       fig = plt.figure()
