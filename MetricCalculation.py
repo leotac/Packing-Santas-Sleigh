@@ -269,6 +269,8 @@ if __name__ == "__main__":
         # calculate order term on the fly
         for i in xrange(len(presentsInCrossSection)):
             presentsSeenSoFar += 1
+            if math.fabs(presentsSeenSoFar - presentsInCrossSection[i]) > 0:
+               print presentsSeenSoFar, presentsInCrossSection[i]
             orderTerm += math.fabs(presentsSeenSoFar - presentsInCrossSection[i])
     
     metric = 2 * max(orderedPresents.keys()) + orderTerm
