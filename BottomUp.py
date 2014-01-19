@@ -21,7 +21,7 @@ if PLOT:
    from mpl_toolkits.mplot3d import Axes3D
 
 SLEIGH_LENGTH = 1000
-MAX_LAYERS = 1
+MAX_LAYERS = 99999
 TRIES = 1
 FRACTION = 4
 DEBUG = False
@@ -454,13 +454,12 @@ class Layer:
                      # go down until the overlapping present
                      # or until the top side is not lower that
                      p.zpos = max(p.zpos - diff, z_min - p.z_depth + 1)
-                     z_min = max(p.zpos + p.z_depth - 1, z_min)
                   break
          else: #First layer.
             diff = p.zpos - 1
             if diff > 0 and (p.zpos+p.z_depth-1) > z_min:
                p.zpos = max(p.zpos - diff, z_min - p.z_depth + 1)
-               z_min = max(p.zpos + p.z_depth-1, z_min)
+         z_min = max(p.zpos + p.z_depth-1, z_min)
          self.z_max = max(self.z_max, p.zpos + p.z_depth - 1)
       return
 
