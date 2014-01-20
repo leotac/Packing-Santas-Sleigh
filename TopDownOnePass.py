@@ -23,7 +23,7 @@ if PLOT:
 SLEIGH_LENGTH = 1000
 MAX_LAYERS = 999999 
 TRIES = 1000
-FRACTION = 4
+FRACTION = 5
 DEBUG = False
 WRITE = True
 RATIO = 1
@@ -123,6 +123,7 @@ class Layer:
                tmp.extend(all_presents[sorties:])
                self.presents = []
                leftovers = []
+               self.z_max = self.z_base + 1
                full = False
                for present in tmp:
                   if full == True:
@@ -735,8 +736,8 @@ def repair_solution():
    totScore=0.
    layers=0.
 
-   last_id = 998495
-   maxz = 1021315
+   last_id = 999844 
+   maxz = 1018209
    random.seed(1)
    with open(presentsFilename, 'rb') as f:
       with open(tmpFilename, 'wb') as w:
@@ -863,8 +864,8 @@ if __name__ == "__main__":
    
    path = '.'
    presentsFilename = os.path.join(path, 'presents.csv')
-   tmpFilename = os.path.join(path, 'tmp1000-5_4.csv')
-   submissionFilename = os.path.join(path, 'OnePassOutput1000-5_4.csv')
+   tmpFilename = os.path.join(path, 'tmp1000-5_5.csv')
+   submissionFilename = os.path.join(path, 'OnePassOutput1000-5_5.csv')
    print tmpFilename, submissionFilename
 
    # create header for submission file: PresentId, x1,y1,z1, ... x8,y8,z8
@@ -937,6 +938,7 @@ if __name__ == "__main__":
                   break
                layer = Layer(prev_layer.id+1, prev_layer.z_max+1, leftovers)
                added_present = layer.add_present(present)
+               cumul_area += present.area
 
             if not added_present:
                print "Something wrong"
