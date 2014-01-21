@@ -4,30 +4,10 @@ Packing Santa's Sleigh -- Compute lower bound for the Top-Down Layer approach
 
 import os
 import csv
-import random
-from random import sample
 
 SLEIGH_LENGTH = 1000
 MAX_LAYERS = 999999 
-TRIES = 1000
-FRACTION = 5
 DEBUG = False
-WRITE = True
-RATIO = 1
-GUILL = False
-
-print "Tries:", TRIES
-print "Reshuffle fraction:", FRACTION
-
-# Global variables for plotting
-xpos, ypos, zpos, dx, dy, dz = [],[],[],[],[],[]
-colors = []
-
-#myShuffle(list,3): shuffle first 3 elements
-#myShuffle(list,3,None): shuffle from 3 to the end
-def myShuffle(x, *s):
-   x[slice(*s)] = sample(x[slice(*s)], len(x[slice(*s)]))
-
 
 class Layer:
    """ Object to keep track of present position and max extent in sleigh so far. """    
@@ -76,7 +56,6 @@ if __name__ == "__main__":
    maxz = 1
    totScore=0.
    layers=0.
-   random.seed(1)
    with open(presentsFilename, 'rb') as f:
          f.readline() # header
          fcsv = csv.reader(f)
@@ -111,5 +90,6 @@ if __name__ == "__main__":
    maxz = layer.z_max
 
    print "Max z =", maxz
+   print "Metric =", 2*maxz
    print "Last present packed", layer.presents[-1].id
    print 'Done'
