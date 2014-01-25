@@ -12,6 +12,7 @@ General approach:
 import os
 import csv
 import random
+import time
 from random import sample
 
 PLOT = False 
@@ -21,9 +22,9 @@ if PLOT:
    from mpl_toolkits.mplot3d import Axes3D
 
 SLEIGH_LENGTH = 1000
-MAX_LAYERS = 999999 
-TRIES = 1000
-FRACTION = 5
+MAX_LAYERS = 9999
+TRIES = 5000
+FRACTION = 6
 DEBUG = False
 WRITE = True
 RATIO = 1
@@ -31,6 +32,8 @@ GUILL = False
 
 print "Tries:", TRIES
 print "Reshuffle fraction:", FRACTION
+print "Without try-refitting"
+print "With smarter randomization"
 
 # Global variables for plotting
 xpos, ypos, zpos, dx, dy, dz = [],[],[],[],[],[]
@@ -47,6 +50,7 @@ class Layer:
    def __init__(self, id, zbase, leftovers):
         self.id = id
         self.z_base = zbase 
+        self.lefty_base = zbase 
         self.z_max = zbase 
         self.presents = []
         self.presents.extend(leftovers)
@@ -102,6 +106,9 @@ class Layer:
          for self.packMode in [0,1]:
             if ok == True:
                break
+            bestSoFar = initial_batch_size
+            bestList = []
+            nonimproving = 0
             for sortMode in xrange(TRIES):
                rect = Rectangle() #entire shelf
                self.free_rectangles = [rect]
@@ -117,8 +124,14 @@ class Layer:
                elif sortMode==3:
                   tmp.sort(key= lambda p : p.z_depth, reverse=True)
                elif sortMode>=4:
-                  tmp.sort(key= lambda p : p.height, reverse=True)
-                  myShuffle(tmp, len(tmp)/FRACTION)
+                  if sortMode == 4:
+                     tmp.sort(key= lambda p : p.height, reverse=True)
+                     bestList = tmp[:]
+                  if nonimproving > 20:
+                     #print "20 nonimproving, shuffling more"
+                     myShuffle(tmp, len(tmp)/FRACTION)
+                  tmp = bestList[:]
+                  myShuffle(tmp, len(tmp)/(FRACTION*2))
 
                tmp.extend(all_presents[sorties:])
                self.presents = []
@@ -151,6 +164,14 @@ class Layer:
                if len(leftovers)>0 and self.presents[-1].id > leftovers[0].id:
                   #print "With", sorties,"presents, wrong order of at least ", self.presents[-1].id - leftovers[0].id, self.presents[-1].id,"-",leftovers[0].id
                   #sorties -= 1
+                  if len(leftovers) < bestSoFar:
+                     bestSoFar = len(leftovers)
+                     if DEBUG:
+                        print "Best so far is", bestSoFar, "leftovers"
+                     bestList = tmp[:sorties]
+                     nonimproving = 0
+                  else:
+                     nonimproving += 1
                   self.presents = all_presents
                   #if DEBUG:
                   #   print "Mode",sortMode, self.packMode, "failed with", sorties, "sorted presents"
@@ -218,7 +239,9 @@ class Layer:
             dy.append(abs(y1-y2))
             dz.append(abs(z1-z2))
             colors.append("w")
+            #print "present",presy.id, "coordinates:", presy.xpos, presy.ypos, presy.xpos+presy.width, presy.ypos+presy.height
             self.presents.append(presy)
+            self.lefty_base = max(self.lefty_base, presy.zpos)
             count += 1
             #detect which free rectangles must be split due to the new present
             toDelete= []
@@ -515,9 +538,11 @@ class Layer:
             if p.overlap(up_p):
                # this is the tallest overlapping present: you can move down the present, if possible. 
                # if not possible, break!
-               diff = p.zpos - (up_p.zpos+up_p.z_depth)
+               diff = p.zpos - max(prev_layer.lefty_base,(up_p.zpos+up_p.z_depth))
                if diff > 0 and (p.zpos - diff) >= z_min:
                   p.zpos -= diff
+                  #print "moved down", diff, "present",p.id, "coordinates:", p.xpos, p.ypos, p.xpos+p.width, p.ypos+p.height
+                  #print "overlapping present:", up_p.id, "top coordinate:", up_p.zpos+up_p.z_depth-1
                   z_min = max(p.zpos, z_min)
                break
          z_min = max(p.zpos, z_min)
@@ -864,8 +889,8 @@ if __name__ == "__main__":
    
    path = '.'
    presentsFilename = os.path.join(path, 'presents.csv')
-   tmpFilename = os.path.join(path, 'tmp1000-5_5.csv')
-   submissionFilename = os.path.join(path, 'OnePassOutput1000-5_5.csv')
+   tmpFilename = os.path.join(path, 'tmpSmart5000-5-6.csv')
+   submissionFilename = os.path.join(path, 'OnePassSmart5000-5-6.csv')
    print tmpFilename, submissionFilename
 
    # create header for submission file: PresentId, x1,y1,z1, ... x8,y8,z8
@@ -887,7 +912,7 @@ if __name__ == "__main__":
          cumul_area = 0
          for row in fcsv:
             if int(row[0])%5000 == 0:
-               print row[0], "layer:", layer.id, "height:",layer.z_max,"avg:", 0 if layers==0 else totScore/layers
+               print row[0], "layer:", layer.id, "height:",layer.z_max,"avg:", 0 if layers==0 else totScore/layers,time.strftime("%d/%m/%Y - %H:%M:%S")
 
             present = Present(row)
             if present.id == 700000:
@@ -926,8 +951,8 @@ if __name__ == "__main__":
                   layer.finalize_shelf()
                
 
-#            if len(leftovers)>0:
-#               del leftovers[:layer.try_fit_rectangle(leftovers)]
+               #if len(leftovers)>0:
+               #   del leftovers[:layer.try_fit_rectangle(leftovers)]
 
                layer.write_short_shelf(tmpwcsv)
                
@@ -937,6 +962,7 @@ if __name__ == "__main__":
                if layer.id >= MAX_LAYERS:
                   break
                layer = Layer(prev_layer.id+1, prev_layer.z_max+1, leftovers)
+               #print "New layer", layer.id, layer.z_base
                added_present = layer.add_present(present)
                cumul_area += present.area
 
@@ -963,8 +989,8 @@ if __name__ == "__main__":
                if PLOT:
                   layer.finalize_shelf()
                
-#            if len(leftovers)>0:
-#               del leftovers[:layer.try_fit_rectangle(leftovers)]
+               #if len(leftovers)>0:
+               #   del leftovers[:layer.try_fit_rectangle(leftovers)]
 
                layer.write_short_shelf(tmpwcsv)
 

@@ -1,7 +1,7 @@
 """
-Packing Santa's Sleigh -- Top-Down Layer approach
+Packing Santa's Sleigh -- Bottom-Up Layer approach
 General approach: 
-- Start from smallest unpacked PresentId
+- Start from largest unpacked PresentId
 - Count the number N of presents that fit in 1000*1000
 - Try packing the first N presents on the same layer (with one or more methods)
 - Decrease N until they fit
@@ -22,8 +22,8 @@ if PLOT:
 
 SLEIGH_LENGTH = 1000
 MAX_LAYERS = 99999
-TRIES = 1
-FRACTION = 4
+TRIES = 5
+FRACTION = 5
 DEBUG = False
 WRITE = True
 RATIO = 1
@@ -640,7 +640,7 @@ if __name__ == "__main__":
     
    path = '.'
    presentsFilename = os.path.join(path, 'presents_revorder.csv')
-   submissionFilename = os.path.join(path, 'bottomup.csv')
+   submissionFilename = os.path.join(path, 'bottomup5-5000.csv')
    print submissionFilename
 
    # create header for submission file: PresentId, x1,y1,z1, ... x8,y8,z8
@@ -666,7 +666,9 @@ if __name__ == "__main__":
                print row[0], "layer:", layer.id, "height:",layer.z_max,"avg:", 0 if layers==0 else totScore/layers
 
             present = Present(row)
-
+            if present.id == 699000:
+               TRIES = 5000
+               print "Now tries:", TRIES
             added_present = False
             if cumul_area + present.area <= SLEIGH_LENGTH*SLEIGH_LENGTH:
                cumul_area += present.area
