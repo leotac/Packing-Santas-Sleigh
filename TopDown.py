@@ -1,5 +1,5 @@
 """
-Packing Santa's Sleigh -- Top-Down Layer approach
+Packing Santa's Sleigh -- Top-Down Layer approach [old]
 General approach: 
 - Start from smallest unpacked PresentId
 - Count the number N of presents that fit in 1000*1000
