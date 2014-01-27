@@ -6,6 +6,7 @@ General approach:
 - Try packing the first N presents on the same layer (with one or more methods)
 - Decrease N until they fit
 [- Try bubbling down]
+[- Try packing extra presents in free vertical space]
 - Move to next layer
 """
 
@@ -32,8 +33,6 @@ GUILL = False
 
 print "Tries:", TRIES
 print "Reshuffle fraction:", FRACTION
-print "Without try-refitting"
-print "With smarter randomization"
 
 # Global variables for plotting
 xpos, ypos, zpos, dx, dy, dz = [],[],[],[],[],[]
@@ -115,6 +114,7 @@ class Layer:
                self.used_rectangles = []
 
                tmp = all_presents[:sorties]
+               # Try different orders + randomized order
                if sortMode==0:
                   tmp.sort(key= lambda p : p.height, reverse=True)
                elif sortMode==1:
@@ -183,7 +183,7 @@ class Layer:
                   result = self.presents[:]
                   resultLeftovers = leftovers[:]
                   bestScore = self.score()
-                  break #MUST BREAK OUT! otherwise presents will be rotated or modified by the following cycle iterations!
+                  break 
          if ok == True:
             self.presents = result
             leftovers = resultLeftovers
@@ -505,10 +505,6 @@ class Layer:
          # Really no space! Rotate it back
          present.rotate()
          return None
-         #open a new layer!
-         #layer.z_base = layer.z_max + 1
-         #tree.root = Node()
-         #leaf = tree.root.insert(present)
 
       x1 = leaf.xpos
       x2 = leaf.xpos - leaf.width + 1
@@ -742,155 +738,12 @@ class Node:
          # insert in first child
          return self.child[0].insert(present)
 
-
-def repair_solution():
-   path = '.'
-   presentsFilename = os.path.join(path, 'presents.csv')
-   tmpFilename = os.path.join(path, 'tmpfile.csv')
-   submissionFilename = os.path.join(path, 'lastlayer.csv')
-   print tmpFilename, submissionFilename
-
-   # create header for submission file: PresentId, x1,y1,z1, ... x8,y8,z8
-   header = ['PresentId']
-   for i in xrange(1,9):
-       header += ['x' + str(i), 'y' + str(i), 'z' + str(i)]
-    
-   layer = Layer(1,1,[])
-   prev_layer = None
-   maxz = 1
-   totScore=0.
-   layers=0.
-
-   last_id = 999844 
-   maxz = 1018209
-   random.seed(1)
-   with open(presentsFilename, 'rb') as f:
-      with open(tmpFilename, 'wb') as w:
-         f.readline() # header
-         fcsv = csv.reader(f)
-         tmpwcsv = csv.writer(w)
-         cumul_area = 0
-         for row in fcsv:
-            if int(row[0])%5000 == 0:
-               print row[0], "layer:", layer.id, "height:",layer.z_max,"avg:", 0 if layers==0 else totScore/layers
-
-            present = Present(row)
-            if present.id == 700000:
-               TRIES = 5
-               print "Now using", TRIES, "tries" 
-            if present.id <= last_id:
-               continue
-            added_present = False
-            if cumul_area + present.area <= SLEIGH_LENGTH*SLEIGH_LENGTH:
-               cumul_area += present.area
-               added_present = layer.add_present(present) 
-            
-            if not added_present:
-
-               # the layer is guaranteed to be full. 
-               # try to pack and return presents that do not fit
-               leftovers = layer.pack()
-               
-               totScore += layer.score()
-               layers+=1
-               if DEBUG:
-                  print layer.id,"Score:", layer.score(), "Avg:", totScore/layers
-               #print "Leftovers",len(leftovers)
-               #print layer.id, present.id, float(present.id)/layer.id
-              
-               # reflect even layers
-               if layer.id % 2 == 0:
-               #   print "Reflected shelf"
-                  layer.reflect_shelf()
-               
-               # compact shelf down (if possible), preserving order
-               if prev_layer is not None:
-                  layer.compact(prev_layer)
-               
-               # store coordinates for plotting
-               if PLOT:
-                  layer.finalize_shelf()
-               
-
-#            if len(leftovers)>0:
-#               del leftovers[:layer.try_fit_rectangle(leftovers)]
-
-               layer.write_short_shelf(tmpwcsv)
-               
-               # open new shelf and add current present
-               cumul_area = sum(p.area for p in leftovers)
-               prev_layer = layer
-               if layer.id >= MAX_LAYERS:
-                  break
-               layer = Layer(prev_layer.id+1, prev_layer.z_max+1, leftovers)
-               added_present = layer.add_present(present)
-
-            if not added_present:
-               print "Something wrong"
-
-         if added_present == True:
-               # rows are over. 
-               # last layer was not "full" (area-wise), so it has not been packed yet!
-               print "Packing last layer?"
-
-               leftovers = layer.pack()
-               
-               # reflect even layers
-               if layer.id % 2 == 0:
-               #   print "Reflected shelf"
-                  layer.reflect_shelf()
-               
-               # compact shelf down (if possible), preserving order
-               if prev_layer is not None:
-                  layer.compact(prev_layer)
-               
-               # store coordinates for plotting
-               if PLOT:
-                  layer.finalize_shelf()
-               
-#            if len(leftovers)>0:
-#               del leftovers[:layer.try_fit_rectangle(leftovers)]
-
-               layer.write_short_shelf(tmpwcsv)
-
-               
-               #however, it can still have leftovers
-               if len(leftovers)>0: 
-                  prev_layer = layer
-                  layer = Layer(prev_layer.id+1, prev_layer.z_max+1, leftovers)
-                  print "Packing leftovers", len(leftovers)
-                  leftovers = layer.pack()
-                  if len(leftovers) > 0:
-                     print "even more leftovers!"
-
-   maxz = layer.z_max
-
-   print "Max z =", maxz
-   print "Last present packed", layer.presents[-1].id
-
-   if WRITE:
-      print "Writing file"
-      layer = Layer(1,1,[])
-      prev_layer = None
-      random.seed(1)
-      with open(tmpFilename, 'rb') as f:
-         with open(submissionFilename, 'wb') as w:
-            fcsv = csv.reader(f)
-            wcsv = csv.writer(w)
-            for row in fcsv:
-               write_present(row, wcsv, maxz) 
-
-   print 'Done'
-
-
 if __name__ == "__main__":
-   #repair_solution()
-   #exit()
    
    path = '.'
    presentsFilename = os.path.join(path, 'presents.csv')
-   tmpFilename = os.path.join(path, 'tmpSmart5000-5-6.csv')
-   submissionFilename = os.path.join(path, 'OnePassSmart5000-5-6.csv')
+   tmpFilename = os.path.join(path, 'tmp.csv')
+   submissionFilename = os.path.join(path, 'submission.csv')
    print tmpFilename, submissionFilename
 
    # create header for submission file: PresentId, x1,y1,z1, ... x8,y8,z8
@@ -925,7 +778,6 @@ if __name__ == "__main__":
                added_present = layer.add_present(present) 
             
             if not added_present:
-
                # the layer is guaranteed to be full. 
                # try to pack and return presents that do not fit
                leftovers = layer.pack()
